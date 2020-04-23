@@ -60,7 +60,7 @@ public class CollectionTask {
 
     {
         //nullPolice = new NullPolice();
-        //serializer = new Gson();
+        //serializer  = new Gson();
         collection = new PersonList();
         fp=new FieldPolice();
         np=new NullPolice();
