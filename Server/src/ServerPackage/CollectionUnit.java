@@ -15,6 +15,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Scanner;
 import java.util.stream.Stream;
 
@@ -37,19 +40,18 @@ public class CollectionUnit implements receiver {
     private Location loc;
     private Person per;
 
-    private String file_name;
+    private String file_name = "src\\PersonClassTest.json";
     private String response = "";
     private Stream<Person> personStream;
 
+    private BDconnector bDconnector;
+    private Connection con;
 
-    /**
-     * @param CT Объект класса CollectionTask
-     * @param file_name_ имя файла
-     */
-    public CollectionUnit(CollectionTask CT, String file_name_){
+
+    public CollectionUnit(CollectionTask CT, BDconnector bDconnector){
         this.ct=CT;
-        this.file_name=file_name_;
-
+        this.bDconnector = bDconnector;
+        this.con = bDconnector.getCon();
     }
 
     {
@@ -67,28 +69,21 @@ public class CollectionUnit implements receiver {
     @Override
     public void add(String name_, Double height_, Color eyeColor_, Color hairColor_, Country nationality_, Float x_, Double y_, Float x1_, double y1_, String name1_){
         response="";
-        coo=cm.create();
-        coo.SetX(x_);
-        coo.SetY(y_);
-        np.CoordinatesReplace(coo);
-        fp.CoordinatesReplace(coo);
-
-        loc=lm.create();
-        loc.SetX(x1_);
-        loc.SetY(y1_);
-        loc.SetName(name1_);
-        //np.LocationReplace(loc);
-        fp.LocationReplace(loc);
-
-        per=om.create();
-
+        per = createPerson(x_, y_, x1_, y1_, name1_);
         per.setEverything(name_, coo, height_, eyeColor_, hairColor_, nationality_, loc);
 
         np.PersonReplace(per);
         fp.PersonReplace(per);
-        ct.add(per);
-        response = "Element added";
-        SystemOut.addText(response);
+
+        try{
+            addToBD(name_, height_, eyeColor_, hairColor_, nationality_, coo.getX(), coo.getY(), loc.getX(), loc.getY(), loc.getName());
+            ct.add(per);
+            System.out.println(ct.GetCollection().get(ct.GetCollection().size() - 1).getName());
+            response = "Element added";
+            SystemOut.addText(response);
+        }catch (SQLException ex) {ex.printStackTrace();}
+
+
     }
 
 
@@ -100,7 +95,7 @@ public class CollectionUnit implements receiver {
         response="";
         if (ct.GetCollection().size() > 0) {
             personStream = ct.GetCollection().stream();
-            personStream.forEach(p -> response +="name: " + p.getName() + " id: " + p.getId() + " date: " + p.getData() + " hair color: " + p.getHairColor() + " location: " + p.location.getName() + " Х " + p.coordinates.getX()+"\n");
+            personStream.forEach(p -> response +="name: " + p.getName() + " id: " + p.getId() + " date: " + p.getData() + " hair color: " + p.getHairColor() + " location: " + p.getLocation().getName() + " Х " + p.getCoordinates().getX()+"\n");
         }else {
             response = "Коллекция пуста";
         }
@@ -125,25 +120,23 @@ public class CollectionUnit implements receiver {
     @Override
     public void update(long id, String nameP_, Double height_, Color eyeColor_, Color hairColor_, Country nationality_, Float x_, Double y_, Float x1_, double y1_, String nameL_, Integer index) {
         response="";
-        coo=cm.create();
-        coo.SetX(x_);
-        coo.SetY(y_);
-        np.CoordinatesReplace(coo);
-        fp.CoordinatesReplace(coo);
+        per = createPerson(x_, y_, x1_, y1_, nameL_);
 
-        loc=lm.create();
-        loc.SetX(x1_);
-        loc.SetY(y1_);
-        loc.SetName(nameL_);
-        fp.LocationReplace(loc);
 
         if(index>=0){
-            ct.GetCollection().get(index).setEverything(nameP_, coo, height_, eyeColor_, hairColor_, nationality_, loc);
-        }else {
+            try {
+               updateBD(index+1, nameP_, height_, eyeColor_, hairColor_, nationality_, coo.getX(), coo.getY(), loc.getX(), loc.getY(), loc.getName());
+                ct.GetCollection().get(index).setEverything(nameP_, coo, height_, eyeColor_, hairColor_, nationality_, loc);
+            } catch (SQLException e) { e.printStackTrace(); }
 
-            personStream = ct.GetCollection().stream();
-            personStream.filter(person -> person.getId() == id).forEach(person -> person.setEverything(nameP_, coo, height_, eyeColor_, hairColor_, nationality_, loc));
-        }
+
+        }else {
+            try {
+                updateBD(id, nameP_, height_, eyeColor_, hairColor_, nationality_, coo.getX(), coo.getY(), loc.getX(), loc.getY(), loc.getName());
+                personStream = ct.GetCollection().stream();
+                personStream.filter(person -> person.getId() == id).forEach(person -> person.setEverything(nameP_, coo, height_, eyeColor_, hairColor_, nationality_, loc));
+            } catch (SQLException e) { e.printStackTrace(); }
+            }
         response = "Обновлен объект с id = " + id;
         SystemOut.addText(response);
     }
@@ -154,7 +147,12 @@ public class CollectionUnit implements receiver {
     @Override
     public void clear() {
         response="";
-        ct.GetCollection().clear();
+        try {
+            PreparedStatement stmt = con.prepareStatement("delete from collection");
+            stmt.executeUpdate();
+            stmt.close();
+            ct.GetCollection().clear();
+        } catch (SQLException e) { e.printStackTrace(); }
         response = "Коллекция очищена.";
         SystemOut.addText(response);
     }
@@ -165,11 +163,21 @@ public class CollectionUnit implements receiver {
     @Override
     public void remove_by_id(long id) {
         response="";
-        personStream = ct.GetCollection().stream();
-        if(personStream.peek(person -> per = person).anyMatch(person -> person.getId() == id)) {
-            ct.GetCollection().remove(per);
-            response = "Удален объект с айди = "+id;
-        }else response = "Объекта с таким id нет";
+        try {
+            PreparedStatement stmt = con.prepareStatement("delete from collection where id =?");
+            stmt.setLong(1, id);
+            stmt.executeUpdate();
+            stmt.close();
+            personStream = ct.GetCollection().stream();
+            if(personStream.peek(person -> per = person).anyMatch(person -> person.getId() == id)) {
+                ct.GetCollection().remove(per);
+                response = "Удален объект с айди = "+id;
+            }else response = "Объекта с таким id нет";
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+
         SystemOut.addText(response);
     }
 
@@ -179,15 +187,22 @@ public class CollectionUnit implements receiver {
     @Override
     public void removeHead() {
         response="";
-        if (ct.GetCollection().size()>0) {
-            response = "Name: " + ct.GetCollection().get(0).getName() +
-                    " id: " + ct.GetCollection().get(0).getId() +
-                    " date: " + ct.GetCollection().get(0).getData() +
-                    " hair color: " + ct.GetCollection().get(0).getHairColor() +
-                    " location: " + ct.GetCollection().get(0).location.getName();
-            ct.GetCollection().remove(0);
-        }else{
-            response = "Коллекция уже пуста";
+        try {
+            PreparedStatement stmt = con.prepareStatement("delete from collection where id = (select min (id) from collection)");
+            stmt.executeUpdate();
+            stmt.close();
+            if (ct.GetCollection().size()>0) {
+                response = "Name: " + ct.GetCollection().get(0).getName() +
+                        " id: " + ct.GetCollection().get(0).getId() +
+                        " date: " + ct.GetCollection().get(0).getData() +
+                        " hair color: " + ct.GetCollection().get(0).getHairColor() +
+                        " location: " + ct.GetCollection().get(0).location.getName();
+                ct.GetCollection().remove(0);
+            }else{
+                response = "Коллекция уже пуста";
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         SystemOut.addText(response);
     }
@@ -198,11 +213,17 @@ public class CollectionUnit implements receiver {
     @Override
     public void removeAnyByNationality(Country nationality) {
         response="";
-        personStream = ct.GetCollection().stream();
-        if(personStream.peek(person -> per = person).anyMatch(person -> person.getNationality() == nationality)) {
-            ct.GetCollection().remove(per);
-            response = "Удален объект с национальностью = "+nationality;
-        }else response = "Объекта с такой национальностью нет";
+        try {
+            PreparedStatement stmt = con.prepareStatement("delete from collection where country =? and id = (select min (id) from collection)");
+            stmt.setString(1, String.valueOf(nationality));
+            stmt.executeUpdate();
+            stmt.close();
+            personStream = ct.GetCollection().stream();
+            if(personStream.peek(person -> per = person).anyMatch(person -> person.getNationality() == nationality)) {
+                ct.GetCollection().remove(per);
+                response = "Удален объект с национальностью = "+nationality;
+            }else response = "Объекта с такой национальностью нет";
+        }catch (SQLException ex) {ex.printStackTrace();}
         SystemOut.addText(response);
     }
 
@@ -298,21 +319,7 @@ public class CollectionUnit implements receiver {
     @Override
     public void addIfMin(String name_, Double height_, Color eyeColor_, Color hairColor_, Country nationality_, Float x_, Double y_, Float x1_, double y1_, String name1_) {
         response="";
-        coo=cm.create();
-        coo.SetX(x_);
-        coo.SetY(y_);
-        np.CoordinatesReplace(coo);
-        fp.CoordinatesReplace(coo);
-
-        loc=lm.create();
-        loc.SetX(x1_);
-        loc.SetY(y1_);
-        loc.SetName(name1_);
-        //np.LocationReplace(loc);
-        fp.LocationReplace(loc);
-
-        per=om.create();
-
+        per = createPerson(x_, y_, x1_, y1_, name1_);
         per.setEverything(name_, coo, height_, eyeColor_, hairColor_, nationality_, loc);
 
         if (ct.GetCollection().size() != 0) {
@@ -323,8 +330,11 @@ public class CollectionUnit implements receiver {
                 //System.out.println(per.compareTo(ct.GetCollection().get(0)));
                 np.PersonReplace(per);
                 fp.PersonReplace(per);
-                ct.add(per);
-                response = "Элемент добавлен!";
+                try{
+                    addToBD(name_, height_, eyeColor_, hairColor_, nationality_, coo.getX(), coo.getY(), loc.getX(), loc.getY(), loc.getName());
+                    ct.add(per);
+                    response = "Элемент добавлен!";
+                }catch (SQLException ex) {ex.printStackTrace();}
             }
 
         SystemOut.addText(response);
@@ -382,6 +392,59 @@ public class CollectionUnit implements receiver {
     }
     @Override
     public void setResponse(String str) {response = str;}
+
+    private void addToBD(String name_, Double height_, Color eyeColor_, Color hairColor_, Country nationality_, Float x_, Double y_, Float x1_, double y1_, String name1_) throws SQLException {
+        PreparedStatement stmt = con.prepareStatement("INSERT INTO collection (name, x, y, height, eyecolor, haircolor, locationname, locationx, locationy, country)" +
+                " VALUES (?,?,?,?,?,?,?,?,?,?)");
+        stmt.setString(1, name_);
+        stmt.setFloat(2, x_);
+        stmt.setDouble(3, y_);
+        stmt.setDouble(4, height_);
+        stmt.setString(5, String.valueOf(eyeColor_));
+        stmt.setString(6, String.valueOf(hairColor_));
+        stmt.setString(7, name1_);
+        stmt.setFloat(8, x1_);
+        stmt.setDouble(9, y1_);
+        stmt.setString(10, String.valueOf(nationality_));
+        stmt.executeUpdate();
+        stmt.close();
+    }
+
+    private void updateBD(long id, String nameP_, Double height_, Color eyeColor_, Color hairColor_, Country nationality_, Float x_, Double y_, Float x1_, double y1_, String nameL_) throws SQLException{
+        PreparedStatement stmt = con.prepareStatement("update collection set name=?, x=?, y=?, height=?, eyecolor=?, haircolor=?, locationname=?, locationx=?, locationy=?, country=? where id = ?");
+        stmt.setString(1, nameP_);
+        stmt.setFloat(2, x_);
+        stmt.setDouble(3, y_);
+        stmt.setDouble(4, height_);
+        stmt.setString(5, String.valueOf(eyeColor_));
+        stmt.setString(6, String.valueOf(hairColor_));
+        stmt.setString(7, nameL_);
+        stmt.setFloat(8, x1_);
+        stmt.setDouble(9, y1_);
+        stmt.setString(10, String.valueOf(nationality_));
+        stmt.setLong(11, id);
+        stmt.executeUpdate();
+        stmt.close();
+    }
+
+    private Person createPerson(Float x_, Double y_, Float x1_, double y1_, String name1_){
+        coo=cm.create();
+        coo.SetX(x_);
+        coo.SetY(y_);
+        np.CoordinatesReplace(coo);
+        fp.CoordinatesReplace(coo);
+
+        loc=lm.create();
+        loc.SetX(x1_);
+        loc.SetY(y1_);
+        loc.SetName(name1_);
+        //np.LocationReplace(loc);
+        fp.LocationReplace(loc);
+
+        Person p =om.create();
+
+        return p;
+    }
 
 
 }

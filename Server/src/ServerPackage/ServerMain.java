@@ -31,6 +31,7 @@ public class ServerMain
 
     private static String ACCESS;
 
+
     private static Log4J2 SustemOut = new Log4J2(System.out);
     private static CollectionTask collectionTask;
     private static receiver CU;
@@ -58,6 +59,9 @@ public class ServerMain
 
 
     BDconnector bc =new BDconnector();
+    /*try(Connection con = bc.getCon(); Statement statement = con.createStatement()) {
+        statement.executeUpdate("insert into collection (name) values ('Valera')");
+    }*/
 
     try {
 
@@ -72,11 +76,14 @@ public class ServerMain
 
         collectionTask = new CollectionTask();
         try {
-            collectionTask.load(args[0]);
-            CU = new CollectionUnit(collectionTask, args[0]);
-        } catch (Exception ex) {
-            collectionTask.load("C:\\Users\\proge\\IdeaProjects\\test\\src\\PersonClassTest.json");
-            CU = new CollectionUnit(collectionTask, "C:\\Users\\proge\\IdeaProjects\\test\\src\\PersonClassTest.json");
+            collectionTask.load(bc);
+            CU = new CollectionUnit(collectionTask, bc);
+        }catch (NullPointerException ex) {
+            /*collectionTask.load("C:\\Users\\proge\\IdeaProjects\\test\\src\\PersonClassTest.json");
+            CU = new CollectionUnit(collectionTask, "C:\\Users\\proge\\IdeaProjects\\test\\src\\PersonClassTest.json");*/
+            /*collectionTask.load("C:\\Users\\user\\Documents\\Lab7\\Server\\src\\PersonClassTest.json");
+            CU = new CollectionUnit(collectionTask, "C:\\Users\\user\\Documents\\Lab7\\Server\\src\\PersonClassTest.json");*/
+            SustemOut.println("Все очень плохо");
         }
 
         while (true) {

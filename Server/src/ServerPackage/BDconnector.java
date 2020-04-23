@@ -42,7 +42,7 @@ public class BDconnector {
     private void doSshTunnel( String strSshUser, String strSshPassword, String strSshHost, int nSshPort, String strRemoteHost, int nLocalPort, int nRemotePort ) throws JSchException
     {
         final JSch jsch = new JSch();
-        Session session = jsch.getSession( strSshUser, strSshHost, 2222 );
+        Session session = jsch.getSession( strSshUser, strSshHost, nSshPort );
         session.setPassword( strSshPassword );
 
         final Properties config = new Properties(); //Properties – это подкласс Hashtable. Он используется для хранения списков значени

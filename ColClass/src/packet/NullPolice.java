@@ -35,10 +35,10 @@ public class NullPolice implements Police<Person,Coordinates> {
             System.out.println("У одного из объектов null поле будет перезаписано автоматически");
             p.setNationality(Country.CHINA);
         }
-        if (p.getLocation()==null){
+        /*if (p.getLocation()==null){
             System.out.println("У одного из объектов null поле будет перезаписано автоматически");
             p.setLocation(new Location(0f, 0d, "Udomlya"));
-        }
+        }*/
     }
 
     /**
@@ -62,13 +62,34 @@ public class NullPolice implements Police<Person,Coordinates> {
         }
 
     }
+    public void LocationReplace(Location loc){
+        try {
+
+            if (loc.getX()==null){
+                System.out.println("У одного из объектов null поле будет перезаписано автоматически");
+                loc.SetX(0f);
+            }
+            if (loc.getY()==null){
+                System.out.println("У одного из объектов null поле будет перезаписано автоматически");
+                loc.SetY(0d);
+            }
+            if (loc.getName() == null){
+                System.out.println("У одного из объектов null поле будет перезаписано автоматически");
+                loc.SetName("Udomlya");
+            }
+        }catch (NullPointerException ex){
+            loc=new Location(0.0f,0.0d, "Udomlya");
+        }
+    }
+
     /**
      * проверка всех полей
      * @param p объект класса packet.Person
      * @param coo объект класса packet.Coordinates
      */
-    public void ReplaceEverything(Person p, Coordinates coo){
+    public void ReplaceEverything(Person p, Coordinates coo, Location loc){
         this.PersonReplace(p);
         this.CoordinatesReplace(coo);
+        this.LocationReplace(loc);
     }
 }

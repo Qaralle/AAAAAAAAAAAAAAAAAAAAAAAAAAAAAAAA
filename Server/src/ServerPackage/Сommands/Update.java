@@ -27,7 +27,7 @@ public class Update extends CommandWithPars{
      */
     @Override
     public void execute(receiver res) throws FileNotFoundException, WrongTypeOfFieldException {
-        if (this.getTransporter().getIndex()!=null) this.getTransporter().setFields(res);
+        if ((this.getTransporter().getIndex()!= -1) && (this.getTransporter().getIndex()!=null)) this.getTransporter().setFields(res);
         this.setFieldsFromTransporter();
         res.update(id, name, height, eyeColor, hairColor, nationality, x, y, x1, y1, name1, transporter.getIndex());
         res.addCommandToHistory("update");

@@ -1,5 +1,6 @@
 package ClassCollection;
 
+import ServerPackage.BDconnector;
 import ServerPackage.PersonList;
 import packet.*;
 import ServerPackage.IWillNameItLater.ConsoleTransporter;
@@ -8,10 +9,16 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
+import javax.swing.plaf.nimbus.State;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.reflect.Type;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Класс, создающий коллекцию из Json.
@@ -41,17 +48,19 @@ public class CollectionTask {
     private Command help;
     
     private PersonList collection;
-    private Gson serializer;
+    //private Gson serializer;
     private FieldPolice fp;
     private NullPolice np;
     private String dateInit;
     private String[] historyOfCommands;
 
+    private Person p;;
+
     private Map<String, Command> commandMap;
 
     {
         //nullPolice = new NullPolice();
-        serializer = new Gson();
+        //serializer = new Gson();
         collection = new PersonList();
         fp=new FieldPolice();
         np=new NullPolice();
@@ -98,14 +107,9 @@ public class CollectionTask {
         commandMap.put("count_less_than_location", countLessThanLocation);
     }
 
-    /**
-     * Метод, осуществляющий загрузку коллекции из файла формата Json.
-     * @param pathname имя файла
-     * @throws FileNotFoundException Не найден файл
-     * @throws JsonSyntaxException Ошибка в синтаксисе файла Json
-     */
-    public void load(String pathname) throws FileNotFoundException, JsonSyntaxException {
-        Scanner scanner = new Scanner(new File(pathname));
+
+    public void load(BDconnector bd){
+        /*Scanner scanner = new Scanner(new File(pathname));
         System.out.println("Collection loading");
         StringBuffer data = new StringBuffer();
         while (scanner.hasNext()) {
@@ -145,7 +149,44 @@ public class CollectionTask {
 
             }
             System.out.println("Коллекций успешно загружена");
+        }*/
+        Connection connection = bd.getCon();
+
+        try {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery("select * from collection");
+            while(resultSet.next()){
+                p = new Person();
+                p.setID(resultSet.getInt("id"));
+                String name = resultSet.getString("name");
+                Coordinates coo = new Coordinates(resultSet.getFloat("x"), resultSet.getDouble("y"));
+                double height = resultSet.getDouble("height");
+                Location loc = new Location(resultSet.getFloat("locationx"), resultSet.getDouble("locationy"), resultSet.getString("locationname"));
+                Country nationality = null;
+                Color eyeColor = null;
+                Color hairColor = null;
+                try {
+                    nationality = Country.valueOf(resultSet.getString("country").toUpperCase());
+                }catch (NullPointerException ex){}
+                try {
+                    eyeColor = Color.valueOf(resultSet.getString("eyecolor").toUpperCase());
+                }catch (NullPointerException ex) {}
+                try {
+                    hairColor = Color.valueOf(resultSet.getString("haircolor").toUpperCase());
+                }catch (NullPointerException ex) {}
+                p.setEverything(name, coo, height, eyeColor, hairColor, nationality, loc);
+                if(!collection.contains(p)) {
+                    np.ReplaceEverything(p, p.getCoordinates(), p.getLocation());
+                    fp.ReplaceEverything(p, p.getLocation(), p.getCoordinates());
+                    collection.add(p);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (NullPointerException ex){
+            System.out.println("fff");
         }
+
 
     }
 

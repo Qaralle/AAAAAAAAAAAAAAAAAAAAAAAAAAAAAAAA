@@ -9,6 +9,8 @@ public class ClientMain
 /*        BufferedReader inFromUser =
                 new BufferedReader(new InputStreamReader(System.in));*/
 
+        String str = null;
+        String str2 = str;
 
     }
 }

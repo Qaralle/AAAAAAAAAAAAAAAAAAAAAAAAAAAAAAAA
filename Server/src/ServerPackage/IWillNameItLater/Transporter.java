@@ -50,7 +50,7 @@ public abstract class Transporter implements SetterParams<Map<String,String>> {
         this.name = bar1.getOrDefault("name","1213123");
         this.index=Integer.parseInt(bar1.getOrDefault("index","-1"));
         this.id=Long.parseLong(bar1.getOrDefault("id","123123123"));
-        this.name1=bar1.getOrDefault("nameL","123123321");
+        this.name1=bar1.getOrDefault("name1","123123321");
         this.nationality= Country.valueOf(bar1.getOrDefault("nationality","CHINA"));
         this.file_name=bar1.getOrDefault("file_name", "dd.txt");
         this.eyeColor = Color.valueOf(bar1.getOrDefault("eyeColor", "GREEN"));

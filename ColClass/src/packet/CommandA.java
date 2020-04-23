@@ -154,7 +154,7 @@ public class CommandA implements Serializable {
         System.out.println("Введите название локации");
         System.out.print("$");
         if(scan.hasNextLine()) {
-            name1 = scan.nextLine();
+            location = scan.nextLine();
             //catchN = scan.nextLine();
         }
         System.out.println("Введите кооридинаты X для точного описания точки локации. Для отделения дробной части используйте точку. ");

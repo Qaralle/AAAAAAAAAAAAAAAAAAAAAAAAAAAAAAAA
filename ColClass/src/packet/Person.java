@@ -23,17 +23,12 @@ public class Person implements Comparable<Person>, Serializable {
     public Location location; //Поле может быть null
 
 
-    private static long setID() {
-
-        long id = System.currentTimeMillis() % LIMIT;
-        if ( id <= last ) {
-            id = (last + 1) % LIMIT;
-        }
-        return last = id;
+    public void setID(long id) {
+        this.id = id;
     }
 
     public Person()  {
-        this.id = setID();
+        //this.id = setID();
         this.creationDate = LocalDateTime.now();
     }
     public LocalDateTime getData(){

@@ -8,7 +8,7 @@ import java.io.Serializable;
  */
 public class Location implements Comparable<Location>, Serializable {
     private Float x; //Поле не может быть null
-    private double y;
+    private Double y;
     private String name; //Длина строки не должна быть больше 222, Поле не может быть null
 
     public Location(){
@@ -19,7 +19,7 @@ public class Location implements Comparable<Location>, Serializable {
      * @param y_ координата y
      * @param name_ название локации
      */
-    public Location(Float x_,double y_,String name_){
+    public Location(Float x_,Double y_,String name_){
         this.x=x_;
         this.y=y_;
         this.name=name_;
@@ -28,7 +28,7 @@ public class Location implements Comparable<Location>, Serializable {
         return name;
     }
     public Float getX() { return x; }
-    public double getY() { return y; }
+    public Double getY() { return y; }
     /**
      * Метод, реализующий сравнение с другой локацией
      * @param o объект класса packet.Location
